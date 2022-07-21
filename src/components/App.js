@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from 'styled-components';
 import { ToastContainer, toast } from 'react-toastify';
 import { theme } from 'theme';
@@ -18,10 +18,8 @@ export const App = () => {
   const [ isLoading, setIsLoading ] = useState(false);
   const [ isLoadMore, setIsLoadMore] = useState(false);
   const [ isLastPage, setIsLastPage] = useState(false);
-  const [ query, setQuery ] = useState('');
+  const [ query, setQuery ] = useState();
   const [ page, setPage ] = useState(1);
-
-  const isFirstRender = useRef(true);
 
   const normalizeData = (hits) => hits.map(({ id, webformatURL, largeImageURL }) => ({ id, webformatURL, largeImageURL}));
   const loadMore = async () => {
@@ -54,17 +52,12 @@ export const App = () => {
           .finally(() => setIsLoading(false));
       }
 
-      if (isFirstRender) {
-        isFirstRender.current = false;
-        return;
-      }
-
       if (query === '') {
         toast.warn('Please, type something to start searching...');
         return;
       }
 
-      if (query !== '' && page === 1) {
+      if (query && page === 1) {
           findImageByQuery();
       }
 
