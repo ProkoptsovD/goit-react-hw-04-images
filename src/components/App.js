@@ -18,7 +18,7 @@ export const App = () => {
   const [ isLoading, setIsLoading ] = useState(false);
   const [ isLoadMore, setIsLoadMore] = useState(false);
   const [ isLastPage, setIsLastPage] = useState(false);
-  const [ query, setQuery ] = useState();
+  const [ query, setQuery ] = useState('');
   const [ page, setPage ] = useState(1);
 
 
