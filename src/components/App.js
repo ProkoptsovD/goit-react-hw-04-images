@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from 'styled-components';
 import { ToastContainer, toast } from 'react-toastify';
 import { theme } from 'theme';
@@ -12,119 +12,113 @@ import Loader from './common/Loader';
 import { pixabayAPI } from '../services';
 import 'react-toastify/dist/ReactToastify.css';
 
-export class App extends Component {
-  state = {
-    images: [],
-    imageModal: '',
-    isLoading: false,
-    isLoadMore: false,
-    isLastPage: false,
-    query: '',
-    page: 1,
-  }
-  setQueryToState = (query) => this.setState(prevState => ({ ...prevState, query, page: 1 }));
-  findImageByQuery = () => {
-    const { query, page } = this.state;
+export const App = () => {
+  const [ images, setImages ] = useState([]);
+  const [ imageModal, setImageModal ] = useState('');
+  const [ isLoading, setIsLoading ] = useState(false);
+  const [ isLoadMore, setIsLoadMore] = useState(false);
+  const [ isLastPage, setIsLastPage] = useState(false);
+  const [ query, setQuery ] = useState();
+  const [ page, setPage ] = useState(1);
 
-    this.toggleLoadingStatus();
-      pixabayAPI.getImage(query, page).then(({ hits }) => {
-        hits.length
-          ? this.setState({ images: this.normalizeData(hits) })
-          : toast.error(`There are no images by ${query} query`)
-      })
-      .catch(console.log)
-      .finally(this.toggleLoadingStatus);
-  }
-  nextPage = () => {
-    const { query, page } = this.state;
 
-    this.toggleLoadMoreStatus();
-    pixabayAPI.getImage(query, page)
-      .then(({ hits }) => this.setState(prevState => ({
-        ...prevState,
-        images: [...prevState.images, ...this.normalizeData(hits)],
-      })))
-      .catch(console.log)
-      .finally(this.toggleLoadMoreStatus)
-  }
-  toggleLoadingStatus = () => this.setState(prevState => ({ isLoading: !prevState.isLoading }));
-  toggleLoadMoreStatus = () => this.setState(prevState => ({ isLoadMore: !prevState.isLoadMore }));
-  loadMore = async () => {
-    this.setState(prevState => {
-      const { page } = prevState;
-      const isLastPage = prevState.page >= pixabayAPI.totalPages;
+  const normalizeData = (hits) => hits.map(({ id, webformatURL, largeImageURL }) => ({ id, webformatURL, largeImageURL}));
+  const loadMore = async () => {
+    const lastPage = page >= pixabayAPI.totalPages;
 
-      return {
-        ...prevState,
-        page: isLastPage ? page : page + 1,
-        isLastPage,
-      }
-    });
+    setPage(lastPage ? page : page + 1);
+    setIsLastPage(lastPage);
   };
-  normalizeData = (hits) => hits.map(({ id, webformatURL, largeImageURL }) => ({ id, webformatURL, largeImageURL}));
-  openModal = (imageURL) => this.setState({ imageModal: imageURL });
-  closeModal = (e) => {
+  const closeModal = (e) => {
     const isEscapePressed = e.code === 'Escape';
     const isOverlayClicked = e.target === e.currentTarget;
 
     if (isEscapePressed || isOverlayClicked) {
-      this.setState({ imageModal: '' })
+      setImageModal('')
     }
   };
-  componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
-    
-    if(query === '') {
-      return toast.warn('Please, type something to start search');
+
+  useEffect(() => {
+    const findImageByQuery = () => {
+      setIsLoading(true);
+      pixabayAPI.getImage(query, page).then(({ hits }) => {
+          if (!hits.length) {
+            toast.error(`There are no images by ${query} query`)
+            return setImages([]);
+          }
+
+          setImages(normalizeData(hits));
+        })
+          .catch(console.log)
+          .finally(() => setIsLoading(false));
+      }
+
+      if (query === '') {
+        toast.warn('Please, type something to start searching...');
+        return;
+      }
+
+      if (query !== '' && page === 1) {
+          findImageByQuery();
+      }
+
+      return;
+  }, [query, page]);
+
+  useEffect(() => {
+    const nextPage = () => {
+      setIsLoadMore(true);
+      pixabayAPI.getImage(query, page)
+        .then(({ hits }) => setImages(images => [ ...images, ...normalizeData(hits)]))
+        .catch(console.log)
+        .finally(() => setIsLoadMore(false));
     }
 
-    if(prevState.query !== query) {
-      this.findImageByQuery();
-    }
+    if (page > 1) nextPage();
 
-    if(prevState.page !== page && page !== 1) {
-      this.nextPage();
-    }
-  }
-  render () {
-    const { images, imageModal, isLoading, isLoadMore, isLastPage } = this.state;
+  }, [page, query]);
+
     const shouldRenderGallery = !isLoading && images.length;
 
     return (
       <ThemeProvider theme={theme}>
           <Searchbar
-            onSubmit={this.setQueryToState}
+            onSubmit={(query) => {
+              setQuery(query);
+              setPage(1);
+            }}
           />
           <main>
             {
-              isLoading && <Loader type='dual-rings'/>
+              isLoading ? <Loader type='dual-rings'/> : null
             }
             {
-              shouldRenderGallery && <>
-                                        <ImageGallery
-                                          openModal={this.openModal}
-                                          imageList={images}
-                                        />
-                                        <Button
-                                            onClick={this.loadMore}
-                                            showLoader={isLoadMore}
-                                            disabled={isLastPage}
-                                        >
-                                            Load more
-                                        </Button>
-                                      </>
+              shouldRenderGallery
+                ? <>
+                    <ImageGallery
+                      openModal={(imageURL) => setImageModal(imageURL)}
+                      imageList={images}
+                    />
+                    <Button
+                        onClick={loadMore}
+                        showLoader={isLoadMore}
+                        disabled={isLastPage}
+                    >
+                        Load more
+                    </Button>
+                  </>
+                : null
             }
           </main>
           {
             imageModal
               ? <Modal
                   imageURL={imageModal}
-                  closeModal={this.closeModal}
+                  closeModal={closeModal}
                 />
               : null
           }
           <ToastContainer/>
       </ThemeProvider>
     );
-  }
 };
