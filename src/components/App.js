@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ThemeProvider } from 'styled-components';
 import { ToastContainer, toast } from 'react-toastify';
 import { theme } from 'theme';
@@ -21,6 +21,7 @@ export const App = () => {
   const [ query, setQuery ] = useState('');
   const [ page, setPage ] = useState(1);
 
+  const isFirstRender = useRef(true);
 
   const normalizeData = (hits) => hits.map(({ id, webformatURL, largeImageURL }) => ({ id, webformatURL, largeImageURL}));
   const loadMore = async () => {
@@ -51,6 +52,11 @@ export const App = () => {
         })
           .catch(console.log)
           .finally(() => setIsLoading(false));
+      }
+
+      if (isFirstRender) {
+        isFirstRender.current = false;
+        return;
       }
 
       if (query === '') {
