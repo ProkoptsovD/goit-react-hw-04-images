@@ -50,21 +50,7 @@ export const App = () => {
         })
           .catch(console.log)
           .finally(() => setIsLoading(false));
-      }
-
-      if (query === '') {
-        toast.warn('Please, type something to start searching...');
-        return;
-      }
-
-      if (query && page === 1) {
-          findImageByQuery();
-      }
-
-      return;
-  }, [query, page]);
-
-  useEffect(() => {
+    }
     const nextPage = () => {
       setIsLoadMore(true);
       pixabayAPI.getImage(query, page)
@@ -73,9 +59,20 @@ export const App = () => {
         .finally(() => setIsLoadMore(false));
     }
 
-    if (page > 1) nextPage();
+      if (query === '') {
+        toast.warn('Please, type something to start searching...');
+        return;
+      }
 
-  }, [page, query]);
+      if (query && page === 1) {
+          findImageByQuery();
+          return;
+      }
+
+      if (page > 1) nextPage();
+
+      return;
+  }, [query, page]);
 
     const shouldRenderGallery = !isLoading && images.length;
 

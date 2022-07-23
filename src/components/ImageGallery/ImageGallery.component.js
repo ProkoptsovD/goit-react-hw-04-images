@@ -7,13 +7,11 @@ const ImageGallery = ({ imageList, openModal }) => {
         <ImageList>
             {
                 imageList.map(({ id, webformatURL, largeImageURL }) => {
-                    const openModalBinded = openModal.bind(null, largeImageURL);
-
                     return (
                             <ImageGalleryItem
                                 key={id}
                                 imageURL={webformatURL}
-                                onClick={openModalBinded}
+                                onClick={() => openModal(largeImageURL)}
                             />
                         )
                 })
